@@ -4,7 +4,6 @@ from torch.nn import functional as F
 from decoder import VAE_AttentionBlock, VAE_ResidualBlock
 
 class VAE_Encoder(nn.Sequential):
-
     def __init__(self):
         super().__init__(
             # (batch_Size, Channel, Height, Width) --> (Batch_size, 128, Height, Width)
@@ -56,13 +55,18 @@ class VAE_Encoder(nn.Sequential):
 
 #forward process
 
-def forward(self, x:torch.Tensor, noise: torch.Tensor) -> torch.Tensor:
-    # x: (Batch_size, Channel, Height, Width)
-    # noise: (Batch_size, Out_Channels, Height / 8, Width/8)
+    def forward(self, x, noise):
+        for module in self:
+            if getattr(module, 'stride', None) == (2, 2):  # Padding at downsampling should be asymmetric (see #8)
+                x = F.pad(x, (0, 1, 0, 1))
+            x = module(x)
 
-    for module in self:
-        if getattr(module, 'stride', None) == (2,2):
-            # Padding
-            x = F.pad(x,(0,1,0,1))
+        mean, log_variance = torch.chunk(x, 2, dim=1)
+        log_variance = torch.clamp(log_variance, -30, 20)
+        variance = log_variance.exp()
+        stdev = variance.sqrt()
+        x = mean + stdev * noise
 
+        x *= 0.18215
+        return x
 
