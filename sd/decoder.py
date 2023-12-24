@@ -1,7 +1,9 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
-from .attention import SelfAttention
+from .attention import SelfAttention\
+
+# attention decoder
 
 class AttentionBlock(nn.Module):
     def __init__(self, channels):
